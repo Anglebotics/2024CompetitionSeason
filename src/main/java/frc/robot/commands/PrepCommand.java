@@ -7,17 +7,16 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Shooter;
 
+/**
+ * Prepare the shooter for a specific angle and speed
+ */
 public class PrepCommand extends Command {
 
     private final Shooter shooter;
-    private double angle = 0;
-    private double speed = 0;
+    private double angle;
+    private double speed;
 
-    /**
-     * Creates a new PrepCommand.
-     */
     public PrepCommand(Shooter shooter, double angle, double speed) {
-        // Use addRequirements() here to declare subsystem dependencies.
         addRequirements(shooter);
         this.shooter = shooter;
         this.angle = angle;
@@ -34,6 +33,7 @@ public class PrepCommand extends Command {
     public void execute() {
         shooter.setAngle(angle);
         shooter.startMotors(speed);
+        shooter.setNoteReadyToFire(true);
     }
 
     // Called once the command ends or is interrupted.

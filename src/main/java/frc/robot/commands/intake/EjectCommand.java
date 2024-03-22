@@ -1,12 +1,15 @@
-package frc.robot.commands;
+package frc.robot.commands.intake;
 
+import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.VoltageOut;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Intake;
 
-// ejects note out of intake
-// use when we have accidently intaked 2+ notes, which we can not deal with
 public class EjectCommand extends Command {
     private final Intake intake;
+
+    private final VoltageOut voltageOut = new VoltageOut(0.0);
+    private final NeutralOut brake = new NeutralOut();
 
     public EjectCommand(Intake intake) {
         this.intake = intake;
@@ -15,16 +18,16 @@ public class EjectCommand extends Command {
 
     @Override
     public void execute() {
-        intake.eject(1.2); // may need to be tuned to whatever the voltage is to eject quickly
+        intake.setMotorControl(voltageOut.withOutput(-1.2));
     }
 
     @Override
     public void end(boolean interrupted) {
-        intake.stopEject();
+        intake.setMotorControl(brake);
     }
 
     @Override
     public boolean isFinished() {
-        return !intake.noteInIntake();
+        return !intake.noteSensedInIntake();
     }
 }

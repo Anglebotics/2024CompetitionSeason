@@ -4,44 +4,55 @@
 
 package frc.robot.commands;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.Constants.OperatorConstants;
-import frc.robot.subsystems.Intake;
 
 public class RumbleCommand extends Command {
-    /**
-     * Creates a new Rumble.
-     */
+    public enum Power {
+        LOW(0.25),
+        MEDIUM(0.5),
+        HIGH(1.0);
 
-    private GenericHID controller;
-    private double power;
-    private double time;
-    private Timer timer;
+        public final double powerValue;
 
-    public RumbleCommand(GenericHID controller, double power, double time) {
-        // Use addRequirements() here to declare subsystem dependencies.
+        Power(double powerValue) {
+            this.powerValue = powerValue;
+        }
+    }
+
+    public enum Time {
+        FAST(0.25);
+
+        private final double timeInSeconds;
+
+        Time(double timeInSeconds) {
+            this.timeInSeconds = timeInSeconds;
+        }
+    }
+
+    private final GenericHID controller;
+    private final Power power;
+    private final Time time;
+    private final Timer timer;
+
+    public RumbleCommand(GenericHID controller, Power power, Time time) {
         this.controller = controller;
         this.time = time;
         this.power = power;
+        this.timer = new Timer();
     }
 
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {
-        controller.setRumble(RumbleType.kBothRumble, power);
-        timer.reset();
-        timer.start();
-    }
-
-
-    // Called every time the scheduler runs while the command is scheduled.
-    @Override
-    public void execute() {
+        if(DriverStation.isAutonomous()) {
+            return;
+        }
+        controller.setRumble(RumbleType.kBothRumble, power.powerValue);
+        timer.restart();
     }
 
     // Called once the command ends or is interrupted.
@@ -53,6 +64,6 @@ public class RumbleCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return timer.hasElapsed(time);
+        return timer.hasElapsed(time.timeInSeconds) || DriverStation.isAutonomous();
     }
 }

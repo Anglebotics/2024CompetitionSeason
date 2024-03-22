@@ -4,6 +4,8 @@
 
 package frc.robot.commands;
 
+import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.VoltageOut;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.*;
@@ -11,10 +13,15 @@ import frc.robot.subsystems.*;
 public class ShootCommand extends Command {
     private final Shooter shooter;
     private final Intake intake;
-    private double speed = 0.4; // Intake motor speed (in percentage of power)
-    private Timer timer = new Timer();
+    private final Timer timer = new Timer();
 
-    public ShootCommand(Shooter shooter, Intake intake) {
+    private final VoltageOut voltageOut = new VoltageOut(0.0);
+    private final NeutralOut brake = new NeutralOut();
+
+    public ShootCommand(
+            Shooter shooter,
+            Intake intake
+    ) {
         this.shooter = shooter;
         this.intake = intake;
         addRequirements(shooter);
@@ -22,29 +29,20 @@ public class ShootCommand extends Command {
     }
 
     public void initialize() {
-        timer.stop();
-        timer.reset();
+        intake.setMotorControl(voltageOut.withOutput(2.4));
+
+        timer.restart();
     }
 
-    // Called every time the scheduler runs while the command is scheduled.
-    @Override
-    public void execute() {
-        if (timer.get() == 0 && shooter.canShoot()) {
-            intake.shoot(speed);
-        }
-        timer.start();
-    }
-
-    // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
+        shooter.setNoteInShooter(false);
+        shooter.setNoteReadyToFire(false);
         shooter.stopMotors();
         shooter.readyArmForNewNote();
-        timer.stop();
-        timer.reset();
+        intake.setMotorControl(brake);
     }
 
-    // Returns true when the command should end.
     @Override
     public boolean isFinished() {
         return timer.hasElapsed(1);

@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
@@ -36,20 +37,36 @@ public class SwerveSubsystem extends SwerveDrivetrain implements Subsystem {
 
     private final SwerveRequest.ApplyChassisSpeeds autoRequest = new SwerveRequest.ApplyChassisSpeeds();
 
-    public SwerveSubsystem(SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
-        super(driveTrainConstants, OdometryUpdateFrequency, modules);
-        configPathPlanner();
-
-        if (Utils.isSimulation()) {
-            startSimThread();
-        }
-    }
+//    public SwerveSubsystem(SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
+//        super(driveTrainConstants, OdometryUpdateFrequency, modules);
+//        configPathPlanner();
+//
+//        if (Utils.isSimulation()) {
+//            startSimThread();
+//        }
+//    }
 
     public SwerveSubsystem(SwerveDrivetrainConstants driveTrainConstants, SwerveModuleConstants... modules) {
         super(driveTrainConstants, modules);
         configPathPlanner();
         if (Utils.isSimulation()) {
             startSimThread();
+        }
+
+        for (SwerveModule module : this.Modules) {
+            CurrentLimitsConfigs driveMotorLimits = new CurrentLimitsConfigs();
+            TalonFX driveMotor = module.getDriveMotor();
+            driveMotor.getConfigurator().refresh(driveMotorLimits);
+            driveMotorLimits.SupplyCurrentLimitEnable = true;
+            driveMotorLimits.SupplyCurrentLimit = 45;
+            driveMotor.getConfigurator().apply(driveMotorLimits);
+
+            CurrentLimitsConfigs steerMotorLimits = new CurrentLimitsConfigs();
+            TalonFX steerMotor = module.getSteerMotor();
+            steerMotor.getConfigurator().refresh(steerMotorLimits);
+            steerMotorLimits.SupplyCurrentLimitEnable = true;
+            steerMotorLimits.SupplyCurrentLimit = 15;
+            steerMotor.getConfigurator().apply(steerMotorLimits);
         }
     }
 
@@ -61,13 +78,6 @@ public class SwerveSubsystem extends SwerveDrivetrain implements Subsystem {
 
     public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
         return run(() -> this.setControl(requestSupplier.get()));
-    }
-
-    public void optimizeCan() {
-        for (int i = 0; i < Modules.length; i++) {
-            SwerveModule module = Modules[i];
-            TalonFX.optimizeBusUtilizationForAll(module.getDriveMotor(), module.getSteerMotor());
-        }
     }
 
     public void zeroGyro() {

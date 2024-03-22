@@ -9,26 +9,21 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.XboxController;
-
-import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.EjectCommand;
+import frc.robot.commands.CommandHolder;
 import frc.robot.commands.PrepCommand;
-import frc.robot.commands.RumbleCommand;
 import frc.robot.commands.ShootCommand;
+import frc.robot.commands.intake.EjectCommand;
 import frc.robot.generated.SwerveTunerConstants;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
@@ -45,6 +40,8 @@ public class RobotContainer {
     private final Shooter shooterSubsystem = new Shooter();
     private final Intake intakeSubsystem = new Intake();
 
+    private final CommandHolder commands;
+
     private SendableChooser<Command> autoChooser = new SendableChooser<Command>();
 
     private final ShootCommand shootCommand = new ShootCommand(shooterSubsystem, intakeSubsystem);
@@ -52,9 +49,10 @@ public class RobotContainer {
     private final PrepCommand stageSpeakerShoot = new PrepCommand(shooterSubsystem, 52.5, 0.9); //TODO Change angle if necessary
     private final PrepCommand trapShoot = new PrepCommand(shooterSubsystem, 66, 50); //TODO Change angle if necessary
     private final PrepCommand ampShoot = new PrepCommand(shooterSubsystem, 64, 23); //TODO Change angle if necessary
-    private final PrepCommand speakerShoot = new PrepCommand(shooterSubsystem, 65, 67); //TODO Change angle if necessary
+    private final PrepCommand speakerShoot = new PrepCommand(shooterSubsystem, 65, 80); //TODO Change angle if necessary
     private final PrepCommand longShot = new PrepCommand(shooterSubsystem, 43.5, 120); //TODO Change angle if necessary
     private final PrepCommand stopShoot = new PrepCommand(shooterSubsystem, 30, 0);
+    private final EjectCommand ejectCommand = new EjectCommand(intakeSubsystem);
 
     // Replace with CommandPS4Controller or CommandJoystick if needed
     public final CommandXboxController driverController =
@@ -79,8 +77,12 @@ public class RobotContainer {
     private final Telemetry telemetry = new Telemetry(maxSpeed);
 
     public RobotContainer() {
+        commands = new CommandHolder(
+                intakeSubsystem,
+                shooterSubsystem,
+                driverController.getHID()
+        );
         configureBindings();
-        //configureRumble();
         intakeSubsystem.intakeInit();
         shooterSubsystem.shooterInit();
 
@@ -108,15 +110,21 @@ public class RobotContainer {
         // Uncomment this to calibrate the wrist angle
         // shooterSubsystem.setDefaultCommand(new CalibrateWristAngleCommand(shooterSubsystem));
 
+        intakeSubsystem.setDefaultCommand(commands.waitForIntakeCommand());
 
-        driverController.leftBumper().onTrue(ampShoot);
-        driverController.rightBumper().onTrue(speakerShoot);
-        driverController.x().onTrue(trapShoot);
-        driverController.y().onTrue(stageSpeakerShoot);
-        driverController.a().onTrue(intakeSubsystem.eject(2)).onFalse(intakeSubsystem.eject(0));
-        driverController.b().onTrue(longShot);
-        driverController.rightTrigger().onTrue(shootCommand);
-        driverController.leftTrigger().onTrue(stopShoot);
+        driverController.a().toggleOnTrue(ejectCommand);  // Allow ejecting a note to be stopped on a second a press
+        driverController.b().toggleOnTrue(commands.intakeNoteAndKeepRunningCommand());
+        driverController.x().and(shooterSubsystem::isNoteInShooter).onTrue(trapShoot);
+        driverController.y().and(shooterSubsystem::isNoteInShooter).onTrue(stageSpeakerShoot);
+
+        driverController.leftBumper().and(shooterSubsystem::isNoteInShooter).onTrue(ampShoot);
+        driverController.rightBumper().and(shooterSubsystem::isNoteInShooter).onTrue(speakerShoot);
+        driverController.leftTrigger().and(shooterSubsystem::isNoteInShooter).onTrue(stopShoot);
+
+        driverController.rightTrigger()
+                .and(shooterSubsystem::canShoot)  // Don't allow shooting unless the shooter is ready
+                .and(shooterSubsystem::isNoteReadyToFire)
+                .onTrue(shootCommand);
 
         drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
                 drivetrain.applyRequest(() -> {
@@ -136,7 +144,7 @@ public class RobotContainer {
                 .applyRequest(() -> point.withModuleDirection(new Rotation2d(-driverController.getLeftY(), -driverController.getLeftX()))));
 
         // reset the field-centric heading on start button press
-        driverController.start().onTrue(drivetrain.runOnce(() -> drivetrain.zeroGyro()));
+        driverController.start().onTrue(drivetrain.runOnce(drivetrain::zeroGyro));
 
 
         if (Utils.isSimulation()) {
@@ -145,18 +153,6 @@ public class RobotContainer {
             drivetrain.registerTelemetry(telemetry::telemeterize);
         }
     }
-
-/*   private void configureRumble() {
-    new Trigger(() -> intakeSubsystem.intakedNote())
-        .onTrue(rumbleCommand);
-    new Trigger(() -> {
-      return DriverStation.isTeleopEnabled()
-          && DriverStation.getMatchTime() > 0.0
-          && DriverStation.getMatchTime() <= Math.round(20);
-    })
-        .onTrue(rumbleCommand);
-  }
- */
 
     /**
      * Use this to pass the autonomous command to the main {@link Robot} class.
