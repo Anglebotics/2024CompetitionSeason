@@ -1,0 +1,65 @@
+- if no time
+	- check note can intake auto and manual
+	- check prep and shoot work in order of use
+
+- check robot initializes when enabled in teleop / auto
+
+- driving
+	- robot relative drive moves according to controller inputs
+	- field oriented drive drives in the direction as expected
+	- check orietation for field relative can be reset
+
+	- if on practice field
+		- check robot rotates correctly
+
+- intake/shooter 
+	- smartdashboard
+		- check preintake sensor trips
+		- check intake sensor trips
+		- check shooter sensor trips
+	- when no note is in intake / shooter
+		- test prepcommand can't be scheduled
+			- test shootermotors can't rev up
+			- checkarm can't move to a position
+		- check shootcammand can't be scheduled
+		- check manual intake override works
+		- check eject command can't be scheduled
+	- when note is in intake and ready for shooting
+		- check prepcommand can be scheduled
+			- motors are revving up to speed
+			- angle of wrist is correct
+		- check shootcommand can be scheduled
+	- when note is stuck into intake/two notes are in intake
+		- check eject command can be scheduled
+			- after eject command is scheduled and note is ejected, 
+				test that intake can intake and schedule prepcommand and shootcommand
+		- check shootcommand can't be scheduled
+		- check prepcommand can't be scheduled
+	- when prepcommand is scheduled
+		- check arm is at or near desired angle and within error
+		- check motors are up to near desired speed and within error
+		- check stopmotors can be scheduled 
+			- check that after stopping a different prepcommand
+				can be scheduled
+			- check that after stopping the same prepcommand
+				can be scheduled
+		- check shootcommand can be scheduled
+			- note should be fed into the shooter and shot out
+	- after shootcommand
+		- check shootmotors stop
+		- check arm returns to 40 degrees to ready for new note
+
+		- if on practice field
+			- check shooting note from center and (right or left) 
+				of subfoower can make it into the speaker
+				consistantly ~8/10 (don't actually do 10)
+			- **optional** test shooting into amp can make it
+				in consistantly ~2/3
+
+	- **not implemented/may be changed** in auto, check preload can still be shot
+		- check after auto finishes, teleop can intake notes and shoot
+	
+	- after comands that stop/reset or shoot/eject notes
+		- check note can be intaked and redo checklist
+			for at least 1 same and 1 different task
+
