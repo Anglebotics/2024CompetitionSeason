@@ -28,6 +28,9 @@ import frc.robot.commands.PrepCommandForAuto;
 import frc.robot.commands.ShootCommand;
 import frc.robot.commands.calibration.CalibrateWristAngleCommand;
 import frc.robot.commands.intake.EjectCommand;
+import frc.robot.commands.intake.Auto.MoveBack;
+import frc.robot.commands.intake.Auto.NoteInShooter;
+import frc.robot.commands.intake.Auto.StartIntake;
 import frc.robot.generated.SwerveTunerConstants;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
@@ -61,6 +64,11 @@ public class RobotContainer {
     private final EjectCommand ejectCommand = new EjectCommand(intakeSubsystem);
 
     private final PrepCommandForAuto autoSpeakerPrep = new PrepCommandForAuto(shooterSubsystem, 67, 80);
+
+
+    private final Command intakeCommand = new StartIntake(intakeSubsystem, shooterSubsystem)
+            .andThen(new NoteInShooter(intakeSubsystem, shooterSubsystem)
+            .andThen(new MoveBack(intakeSubsystem, shooterSubsystem)));
 
     public final CommandXboxController driverController =
             new CommandXboxController(OperatorConstants.kDriverControllerPort);
@@ -96,7 +104,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("Shoot", shootCommand);
         NamedCommands.registerCommand("Stage Speaker Shoot", stageSpeakerShoot);
         NamedCommands.registerCommand("Trap Shoot", trapShoot);
-        NamedCommands.registerCommand("Intake", commands.intakeNoteAndKeepRunningCommand());
+        NamedCommands.registerCommand("Intake", intakeCommand);
 
         // TODO: tune positions of robot especially with bumpers
         autoChooser = AutoBuilder.buildAutoChooser("");
