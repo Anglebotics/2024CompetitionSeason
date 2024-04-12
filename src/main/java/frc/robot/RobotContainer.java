@@ -64,6 +64,9 @@ public class RobotContainer {
 
     public final CommandXboxController driverController =
             new CommandXboxController(OperatorConstants.kDriverControllerPort);
+
+    public final CommandXboxController operatorController =
+            new CommandXboxController(OperatorConstants.kOperatorControllerPort);
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.
      */
@@ -159,6 +162,13 @@ public class RobotContainer {
 
         driverController.povUp().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeSpeed(+5)));
         driverController.povDown().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeSpeed(-5)));
+
+        
+        operatorController.povRight().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeAngle(+3)));
+        operatorController.povLeft().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeAngle(-3)));
+
+        operatorController.povUp().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeSpeed(+5)));
+        operatorController.povDown().and(hasValidPrepCommand).onTrue(Commands.runOnce(() -> PrepCommand.currentPrepCommand.changeSpeed(-5)));
 
         if (Utils.isSimulation()) {
             drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
